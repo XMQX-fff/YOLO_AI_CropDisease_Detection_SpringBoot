@@ -1,12 +1,10 @@
 package com.example.Ece.controller;
 
-import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
-import com.baomidou.mybatisplus.core.toolkit.Wrappers;
+
 import com.example.Ece.common.Result;
 import com.example.Ece.dto.StatisticsDTO;
 import com.example.Ece.entity.Greenhouse;
 import com.example.Ece.entity.GreenhouseDetection;
-import com.example.Ece.entity.User;
 import com.example.Ece.mapper.GreenhouseDetectionMapper;
 import com.example.Ece.mapper.GreenhouseMapper;
 import com.example.Ece.mapper.UserMapper;
