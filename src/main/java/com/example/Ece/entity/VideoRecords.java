@@ -15,6 +15,7 @@ import lombok.NoArgsConstructor;
 public class VideoRecords {
     @TableId(type = IdType.AUTO)
     private Integer id;
+    private Integer userId;
     private String weight;
     private String inputVideo;
     private String outVideo;

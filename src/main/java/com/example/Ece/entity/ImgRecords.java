@@ -16,6 +16,7 @@ import lombok.NoArgsConstructor;
 public class ImgRecords {
     @TableId(type = IdType.AUTO)
     private Integer id;
+    private Integer userId;
     private String weight;
     private String inputImg;
     private String outImg;

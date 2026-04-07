@@ -8,10 +8,14 @@ import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.example.Ece.common.Result;
 import com.example.Ece.entity.User;
 import com.example.Ece.mapper.UserMapper;
+import com.example.Ece.utils.JwtUtils;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
 
 import javax.annotation.Resource;
 import java.util.Date;
+import java.util.HashMap;
+import java.util.Map;
 import java.util.Objects;
 
 /**
@@ -23,6 +27,9 @@ import java.util.Objects;
 public class UserController {
     @Resource
     UserMapper userMapper;
+
+    @Autowired
+    private JwtUtils jwtUtils;
 
     /**
      * 用户分页列表查询，包含表的一对多查询
@@ -69,7 +76,16 @@ public class UserController {
             if (!Objects.equals(userParam.getPassword(), userPwd.getPassword())) {
                 return Result.error("-1", "密码错误！");
             } else {
-                return Result.success(res);
+                // 生成JWT Token
+                String token = jwtUtils.generateToken(res.getId(), res.getUsername(), res.getRole());
+                
+                // 构建返回数据
+                Map<String, Object> result = new HashMap<>();
+                result.put("user", res);
+                result.put("token", token);
+                result.put("tokenType", "Bearer");
+                
+                return Result.success(result);
             }
         }catch (Exception e){
             return Result.error("-1", "用户名不存在！");

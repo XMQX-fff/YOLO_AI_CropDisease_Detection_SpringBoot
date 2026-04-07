@@ -12,10 +12,13 @@ import com.example.Ece.entity.Greenhouse;
 import com.example.Ece.entity.GreenhouseAlertRule;
 import com.example.Ece.entity.GreenhouseDetection;
 import com.example.Ece.entity.GreenhouseEnvironmentHistory;
+import com.example.Ece.entity.User;
 import com.example.Ece.mapper.GreenhouseAlertRuleMapper;
 import com.example.Ece.mapper.GreenhouseDetectionMapper;
 import com.example.Ece.mapper.GreenhouseEnvironmentHistoryMapper;
 import com.example.Ece.mapper.GreenhouseMapper;
+import com.example.Ece.service.DataAccessControlService;
+import com.example.Ece.util.UserContext;
 import org.springframework.web.bind.annotation.*;
 
 import javax.annotation.Resource;
@@ -38,10 +41,34 @@ public class GreenhouseController {
     private GreenhouseEnvironmentHistoryMapper greenhouseEnvironmentHistoryMapper;
     @Resource
     private GreenhouseAlertRuleMapper greenhouseAlertRuleMapper;
+    @Resource
+    private DataAccessControlService dataAccessControlService;
+
+    /**
+     * 获取当前登录用户
+     */
+    private User getCurrentUser() {
+        return UserContext.getCurrentUser();
+    }
+
+    /**
+     * 检查是否是管理员
+     */
+    private boolean isAdmin(User user) {
+        return user != null && "admin".equals(user.getRole());
+    }
 
     @GetMapping("/all")
     public Result<?> getAll() {
-        return Result.success(greenhouseMapper.selectList(null));
+        User currentUser = getCurrentUser();
+        LambdaQueryWrapper<Greenhouse> wrapper = Wrappers.<Greenhouse>lambdaQuery();
+        
+        // 非管理员只能查看自己的数据
+        if (!isAdmin(currentUser)) {
+            wrapper.eq(Greenhouse::getUserId, currentUser.getId());
+        }
+        
+        return Result.success(greenhouseMapper.selectList(wrapper));
     }
 
     @GetMapping("/withDiseaseCount")
@@ -52,8 +79,14 @@ public class GreenhouseController {
                                             @RequestParam(defaultValue = "") String growthStatus,
                                             @RequestParam(defaultValue = "") String manager,
                                             @RequestParam(defaultValue = "") String recordTime) {
+        User currentUser = getCurrentUser();
         LambdaQueryWrapper<Greenhouse> wrapper = Wrappers.<Greenhouse>lambdaQuery();
         wrapper.orderByDesc(Greenhouse::getCreateTime);
+        
+        // 非管理员只能查看自己的数据
+        if (!isAdmin(currentUser)) {
+            wrapper.eq(Greenhouse::getUserId, currentUser.getId());
+        }
         
         if (StrUtil.isNotBlank(search)) {
             wrapper.like(Greenhouse::getGreenhouseName, search);
@@ -95,7 +128,15 @@ public class GreenhouseController {
 
     @GetMapping("/status/all")
     public Result<?> getAllGreenhouseStatus() {
-        List<Greenhouse> greenhouses = greenhouseMapper.selectList(null);
+        User currentUser = getCurrentUser();
+        LambdaQueryWrapper<Greenhouse> wrapper = Wrappers.<Greenhouse>lambdaQuery();
+        
+        // 非管理员只能查看自己的数据
+        if (!isAdmin(currentUser)) {
+            wrapper.eq(Greenhouse::getUserId, currentUser.getId());
+        }
+        
+        List<Greenhouse> greenhouses = greenhouseMapper.selectList(wrapper);
         List<GreenhouseStatusDTO> result = new ArrayList<>();
         
         // 获取所有告警规则
@@ -200,14 +241,33 @@ public class GreenhouseController {
 
     @GetMapping("/{id}")
     public Result<?> getById(@PathVariable Integer id) {
-        return Result.success(greenhouseMapper.selectById(id));
+        User currentUser = getCurrentUser();
+        Greenhouse greenhouse = greenhouseMapper.selectById(id);
+        
+        if (greenhouse == null) {
+            return Result.error("-1", "温室不存在");
+        }
+        
+        // 非管理员只能查看自己的数据
+        if (!isAdmin(currentUser) && !currentUser.getId().equals(greenhouse.getUserId())) {
+            return Result.error("-1", "您没有权限访问此温室");
+        }
+        
+        return Result.success(greenhouse);
     }
 
     @GetMapping("/{id}/withDetections")
     public Result<?> getWithDetections(@PathVariable Integer id) {
+        User currentUser = getCurrentUser();
         Greenhouse greenhouse = greenhouseMapper.selectById(id);
+        
         if (greenhouse == null) {
             return Result.error("-1", "温室不存在");
+        }
+        
+        // 非管理员只能查看自己的数据
+        if (!isAdmin(currentUser) && !currentUser.getId().equals(greenhouse.getUserId())) {
+            return Result.error("-1", "您没有权限访问此温室");
         }
         
         LambdaQueryWrapper<GreenhouseDetection> wrapper = Wrappers.<GreenhouseDetection>lambdaQuery();
@@ -227,8 +287,14 @@ public class GreenhouseController {
                              @RequestParam(defaultValue = "") String growthStatus,
                              @RequestParam(defaultValue = "") String manager,
                              @RequestParam(defaultValue = "") String recordTime) {
+        User currentUser = getCurrentUser();
         LambdaQueryWrapper<Greenhouse> wrapper = Wrappers.<Greenhouse>lambdaQuery();
         wrapper.orderByDesc(Greenhouse::getCreateTime);
+        
+        // 非管理员只能查看自己的数据
+        if (!isAdmin(currentUser)) {
+            wrapper.eq(Greenhouse::getUserId, currentUser.getId());
+        }
         
         if (StrUtil.isNotBlank(search)) {
             wrapper.like(Greenhouse::getGreenhouseName, search);
@@ -252,6 +318,18 @@ public class GreenhouseController {
 
     @PostMapping
     public Result<?> save(@RequestBody Greenhouse greenhouse) {
+        User currentUser = getCurrentUser();
+        
+        // 设置创建者
+        if (greenhouse.getUserId() == null) {
+            greenhouse.setUserId(currentUser.getId());
+        }
+        
+        // 非管理员只能创建自己的数据
+        if (!isAdmin(currentUser) && !currentUser.getId().equals(greenhouse.getUserId())) {
+            return Result.error("-1", "您没有权限创建此温室");
+        }
+        
         greenhouse.setCreateTime(LocalDateTime.now());
         greenhouse.setUpdateTime(LocalDateTime.now());
         greenhouseMapper.insert(greenhouse);
@@ -260,6 +338,18 @@ public class GreenhouseController {
 
     @PostMapping("/update")
     public Result<?> update(@RequestBody Greenhouse greenhouse) {
+        User currentUser = getCurrentUser();
+        Greenhouse existing = greenhouseMapper.selectById(greenhouse.getId());
+        
+        if (existing == null) {
+            return Result.error("-1", "温室不存在");
+        }
+        
+        // 非管理员只能修改自己的数据
+        if (!isAdmin(currentUser) && !currentUser.getId().equals(existing.getUserId())) {
+            return Result.error("-1", "您没有权限修改此温室");
+        }
+        
         greenhouse.setUpdateTime(LocalDateTime.now());
         greenhouseMapper.updateById(greenhouse);
         return Result.success();
@@ -267,7 +357,19 @@ public class GreenhouseController {
 
     @DeleteMapping("/{id}")
     public Result<?> delete(@PathVariable Integer id) {
+        User currentUser = getCurrentUser();
+        Greenhouse existing = greenhouseMapper.selectById(id);
+        
+        if (existing == null) {
+            return Result.error("-1", "温室不存在");
+        }
+        
+        // 非管理员只能删除自己的数据
+        if (!isAdmin(currentUser) && !currentUser.getId().equals(existing.getUserId())) {
+            return Result.error("-1", "您没有权限删除此温室");
+        }
+        
         greenhouseMapper.deleteById(id);
         return Result.success();
     }
-} 
+}

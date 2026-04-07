@@ -1,4 +1,5 @@
 package com.example.Ece.controller;
+
 import cn.hutool.core.util.StrUtil;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.toolkit.Wrappers;
@@ -7,8 +8,10 @@ import com.example.Ece.common.Result;
 import com.example.Ece.dto.CameraRecordsDTO;
 import com.example.Ece.entity.CameraRecords;
 import com.example.Ece.entity.GreenhouseDetection;
+import com.example.Ece.entity.User;
 import com.example.Ece.mapper.CameraRecordsMapper;
 import com.example.Ece.mapper.GreenhouseDetectionMapper;
+import com.example.Ece.util.UserContext;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.bind.annotation.*;
 
@@ -17,20 +20,54 @@ import java.time.LocalDateTime;
 
 @RestController
 @RequestMapping("/cameraRecords")
-public class   CameraRecordsController {
+public class CameraRecordsController {
     @Resource
     CameraRecordsMapper cameraRecordsMapper;
     @Resource
     GreenhouseDetectionMapper greenhouseDetectionMapper;
 
+    /**
+     * 获取当前登录用户
+     */
+    private User getCurrentUser() {
+        return UserContext.getCurrentUser();
+    }
+
+    /**
+     * 检查是否是管理员
+     */
+    private boolean isAdmin(User user) {
+        return user != null && "admin".equals(user.getRole());
+    }
+
     @GetMapping("/all")
     public Result<?> GetAll() {
-        return Result.success(cameraRecordsMapper.selectList(null));
+        User currentUser = getCurrentUser();
+        LambdaQueryWrapper<CameraRecords> wrapper = Wrappers.<CameraRecords>lambdaQuery();
+        
+        // 非管理员只能查看自己的数据
+        if (!isAdmin(currentUser)) {
+            wrapper.eq(CameraRecords::getUserId, currentUser.getId());
+        }
+        
+        return Result.success(cameraRecordsMapper.selectList(wrapper));
     }
+    
     @GetMapping("/{id}")
     public Result<?> getById(@PathVariable int id) {
-        System.out.println(id);
-        return Result.success(cameraRecordsMapper.selectById(id));
+        User currentUser = getCurrentUser();
+        CameraRecords record = cameraRecordsMapper.selectById(id);
+        
+        if (record == null) {
+            return Result.error("-1", "记录不存在");
+        }
+        
+        // 非管理员只能查看自己的数据
+        if (!isAdmin(currentUser) && !currentUser.getId().equals(record.getUserId())) {
+            return Result.error("-1", "您没有权限访问此记录");
+        }
+        
+        return Result.success(record);
     }
 
     @GetMapping
@@ -40,8 +77,15 @@ public class   CameraRecordsController {
                               @RequestParam(defaultValue = "") String search1,
                               @RequestParam(defaultValue = "") String search3,
                               @RequestParam(defaultValue = "") String search2) {
+        User currentUser = getCurrentUser();
         LambdaQueryWrapper<CameraRecords> wrapper = Wrappers.<CameraRecords>lambdaQuery();
         wrapper.orderByDesc(CameraRecords::getStartTime);
+        
+        // 非管理员只能查看自己的数据
+        if (!isAdmin(currentUser)) {
+            wrapper.eq(CameraRecords::getUserId, currentUser.getId());
+        }
+        
         if (StrUtil.isNotBlank(search)) {
             wrapper.like(CameraRecords::getUsername, search);
         }
@@ -60,12 +104,36 @@ public class   CameraRecordsController {
 
     @DeleteMapping("/{id}")
     public Result<?> delete(@PathVariable int id) {
+        User currentUser = getCurrentUser();
+        CameraRecords existing = cameraRecordsMapper.selectById(id);
+        
+        if (existing == null) {
+            return Result.error("-1", "记录不存在");
+        }
+        
+        // 非管理员只能删除自己的数据
+        if (!isAdmin(currentUser) && !currentUser.getId().equals(existing.getUserId())) {
+            return Result.error("-1", "您没有权限删除此记录");
+        }
+        
         cameraRecordsMapper.deleteById(id);
         return Result.success();
     }
 
     @PostMapping("/update")
     public Result<?> updates(@RequestBody CameraRecords cameraRecords) {
+        User currentUser = getCurrentUser();
+        CameraRecords existing = cameraRecordsMapper.selectById(cameraRecords.getId());
+        
+        if (existing == null) {
+            return Result.error("-1", "记录不存在");
+        }
+        
+        // 非管理员只能修改自己的数据
+        if (!isAdmin(currentUser) && !currentUser.getId().equals(existing.getUserId())) {
+            return Result.error("-1", "您没有权限修改此记录");
+        }
+        
         cameraRecordsMapper.updateById(cameraRecords);
         return Result.success();
     }
@@ -74,6 +142,7 @@ public class   CameraRecordsController {
     @PostMapping
     @Transactional
     public Result<?> save(@RequestBody CameraRecordsDTO cameraRecordsDTO) {
+        User currentUser = getCurrentUser();
         System.out.println(cameraRecordsDTO);
         
         CameraRecords cameraRecords = new CameraRecords();
@@ -83,6 +152,9 @@ public class   CameraRecordsController {
         cameraRecords.setUsername(cameraRecordsDTO.getUsername());
         cameraRecords.setKind(cameraRecordsDTO.getKind());
         cameraRecords.setStartTime(cameraRecordsDTO.getStartTime());
+        
+        // 设置用户ID
+        cameraRecords.setUserId(currentUser.getId());
         
         cameraRecordsMapper.insert(cameraRecords);
         

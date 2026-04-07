@@ -9,6 +9,7 @@ import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
+import java.math.BigDecimal;
 import java.time.LocalDateTime;
 
 @TableName("greenhouse")
@@ -19,6 +20,9 @@ import java.time.LocalDateTime;
 public class Greenhouse {
     @TableId(type = IdType.AUTO)
     private Integer id;
+    
+    private Integer userId;
+    
     private String greenhouseName;
     private String cropType;
     private Integer quantity;
@@ -32,129 +36,29 @@ public class Greenhouse {
     private String manager;
     private String recordTime;
     
+    // 新增地理位置字段
+    private String province;
+    private String city;
+    private String district;
+    private String town;
+    private String village;
+    private String detailedAddress;
+    private BigDecimal longitude;
+    private BigDecimal latitude;
+    private BigDecimal altitude;
+    private String coordinateSystem;
+    private String regionId;
+    private String regionName;
+    private String climateZone;
+    private String terrainType;
+    private String soilType;
+    
+    // 新增在线状态字段
+    private Integer onlineStatus;
+    
     @JsonFormat(pattern = "yyyy-MM-dd HH:mm:ss", timezone = "GMT+8")
     private LocalDateTime createTime;
     
     @JsonFormat(pattern = "yyyy-MM-dd HH:mm:ss", timezone = "GMT+8")
     private LocalDateTime updateTime;
-
-    public Integer getId() {
-        return id;
-    }
-
-    public void setId(Integer id) {
-        this.id = id;
-    }
-
-    public String getGreenhouseName() {
-        return greenhouseName;
-    }
-
-    public void setGreenhouseName(String greenhouseName) {
-        this.greenhouseName = greenhouseName;
-    }
-
-    public String getCropType() {
-        return cropType;
-    }
-
-    public void setCropType(String cropType) {
-        this.cropType = cropType;
-    }
-
-    public Integer getQuantity() {
-        return quantity;
-    }
-
-    public void setQuantity(Integer quantity) {
-        this.quantity = quantity;
-    }
-
-    public String getGrowthStatus() {
-        return growthStatus;
-    }
-
-    public void setGrowthStatus(String growthStatus) {
-        this.growthStatus = growthStatus;
-    }
-
-    public Double getTemperature() {
-        return temperature;
-    }
-
-    public void setTemperature(Double temperature) {
-        this.temperature = temperature;
-    }
-
-    public Integer getAirHumidity() {
-        return airHumidity;
-    }
-
-    public void setAirHumidity(Integer airHumidity) {
-        this.airHumidity = airHumidity;
-    }
-
-    public Integer getSoilHumidity() {
-        return soilHumidity;
-    }
-
-    public void setSoilHumidity(Integer soilHumidity) {
-        this.soilHumidity = soilHumidity;
-    }
-
-    public Integer getCo2Concentration() {
-        return co2Concentration;
-    }
-
-    public void setCo2Concentration(Integer co2Concentration) {
-        this.co2Concentration = co2Concentration;
-    }
-
-    public Double getSoilPh() {
-        return soilPh;
-    }
-
-    public void setSoilPh(Double soilPh) {
-        this.soilPh = soilPh;
-    }
-
-    public Integer getLightIntensity() {
-        return lightIntensity;
-    }
-
-    public void setLightIntensity(Integer lightIntensity) {
-        this.lightIntensity = lightIntensity;
-    }
-
-    public String getManager() {
-        return manager;
-    }
-
-    public void setManager(String manager) {
-        this.manager = manager;
-    }
-
-    public String getRecordTime() {
-        return recordTime;
-    }
-
-    public void setRecordTime(String recordTime) {
-        this.recordTime = recordTime;
-    }
-
-    public LocalDateTime getCreateTime() {
-        return createTime;
-    }
-
-    public void setCreateTime(LocalDateTime createTime) {
-        this.createTime = createTime;
-    }
-
-    public LocalDateTime getUpdateTime() {
-        return updateTime;
-    }
-
-    public void setUpdateTime(LocalDateTime updateTime) {
-        this.updateTime = updateTime;
-    }
-} 
+}
