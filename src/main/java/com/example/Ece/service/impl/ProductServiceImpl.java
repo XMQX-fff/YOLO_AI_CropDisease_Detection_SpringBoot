@@ -259,7 +259,9 @@ public class ProductServiceImpl extends ServiceImpl<ProductMapper, Product> impl
         // 处理排序
         applySort(wrapper, sort);
 
-        return page(page, wrapper);
+        IPage<Product> result = page(page, wrapper);
+        loadMainImages(result.getRecords());
+        return result;
     }
 
     @Override

@@ -66,4 +66,10 @@ public interface OrderService extends IService<Order> {
      * 获取供应商的订单列表
      */
     List<Order> getOrdersBySupplierId(Integer supplierId);
+
+    /**
+     * 分页获取供应商订单
+     * 查询包含该供应商商品的订单
+     */
+    IPage<Order> getOrderPageBySupplierId(Page<Order> page, Integer supplierId, String status);
 }

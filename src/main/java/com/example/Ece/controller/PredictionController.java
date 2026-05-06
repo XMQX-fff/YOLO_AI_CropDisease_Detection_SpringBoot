@@ -28,6 +28,7 @@ public class PredictionController {
         private String inputImg;
         private String kind;
         private String conf;
+        private String token;
 
         public String getUsername() {
             return username;
@@ -75,6 +76,14 @@ public class PredictionController {
 
         public void setKind(String kind) {
             this.kind = kind;
+        }
+
+        public String getToken() {
+            return token;
+        }
+
+        public void setToken(String token) {
+            this.token = token;
         }
     }
 

@@ -34,7 +34,9 @@ public class WebConfig implements WebMvcConfigurer {
                         // 商品浏览相关（前台展示）
                         "/product",
                         "/product/**",
-                        "/product/category/**"
+                        "/product/category/**",
+                        // 预测结果图片允许匿名访问
+                        "/files/**"
                 );
 
         // 注册用户上下文清理拦截器，拦截所有路径，顺序在最后

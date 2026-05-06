@@ -5,6 +5,7 @@ import com.baomidou.mybatisplus.core.conditions.update.LambdaUpdateWrapper;
 import com.baomidou.mybatisplus.core.mapper.BaseMapper;
 import com.example.Ece.entity.Order;
 import org.apache.ibatis.annotations.Mapper;
+import org.apache.ibatis.annotations.Select;
 
 import java.time.LocalDateTime;
 import java.util.List;
@@ -93,4 +94,26 @@ public interface OrderMapper extends BaseMapper<Order> {
         wrapper.orderByDesc(Order::getOrderTime);
         return selectList(wrapper);
     }
+
+    /**
+     * 根据供应商ID查询订单（通过订单商品关联）
+     * 查询包含该供应商商品的订单
+     */
+    @Select("SELECT DISTINCT o.* FROM orders o " +
+            "INNER JOIN order_item oi ON o.id = oi.order_id " +
+            "INNER JOIN product p ON oi.product_id = p.id " +
+            "WHERE p.supplier_id = #{supplierId} " +
+            "ORDER BY o.order_time DESC")
+    List<Order> selectBySupplierId(Integer supplierId);
+
+    /**
+     * 根据供应商ID和状态查询订单
+     */
+    @Select("SELECT DISTINCT o.* FROM orders o " +
+            "INNER JOIN order_item oi ON o.id = oi.order_id " +
+            "INNER JOIN product p ON oi.product_id = p.id " +
+            "WHERE p.supplier_id = #{supplierId} " +
+            "AND o.status = #{status} " +
+            "ORDER BY o.order_time DESC")
+    List<Order> selectBySupplierIdAndStatus(Integer supplierId, String status);
 }

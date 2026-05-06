@@ -15,8 +15,10 @@ import org.springframework.transaction.annotation.Transactional;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Random;
+import java.util.stream.Collectors;
 
 /**
  * 订单Service实现类
@@ -279,9 +281,41 @@ public class OrderServiceImpl extends ServiceImpl<OrderMapper, Order> implements
     @Override
     public List<Order> getOrdersBySupplierId(Integer supplierId) {
         // 通过订单商品中的商品ID关联供应商
-        // 简化实现，实际应该通过更复杂的查询
-        LambdaQueryWrapper<Order> wrapper = new LambdaQueryWrapper<>();
-        wrapper.orderByDesc(Order::getOrderTime);
-        return list(wrapper);
+        return baseMapper.selectBySupplierId(supplierId);
+    }
+
+    @Override
+    public IPage<Order> getOrderPageBySupplierId(Page<Order> page, Integer supplierId, String status) {
+        // 先获取所有符合条件的订单ID
+        List<Order> orders;
+        if (status != null && !status.isEmpty()) {
+            orders = baseMapper.selectBySupplierIdAndStatus(supplierId, status);
+        } else {
+            orders = baseMapper.selectBySupplierId(supplierId);
+        }
+
+        // 手动分页
+        int total = orders.size();
+        int start = (int) ((page.getCurrent() - 1) * page.getSize());
+        int end = Math.min(start + (int) page.getSize(), total);
+
+        List<Order> records = start < total ? orders.subList(start, end) : new ArrayList<>();
+
+        // 加载订单商品信息
+        for (Order order : records) {
+            List<OrderItem> items = orderItemMapper.selectByOrderId(order.getId());
+            // 只保留当前供应商的商品
+            items = items.stream()
+                    .filter(item -> {
+                        Product product = productMapper.selectById(item.getProductId());
+                        return product != null && product.getSupplierId().equals(supplierId);
+                    })
+                    .collect(Collectors.toList());
+            order.setOrderItems(items);
+        }
+
+        IPage<Order> resultPage = new Page<>(page.getCurrent(), page.getSize(), total);
+        resultPage.setRecords(records);
+        return resultPage;
     }
 }

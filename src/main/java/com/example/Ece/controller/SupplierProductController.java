@@ -77,8 +77,10 @@ public class SupplierProductController {
             return null;
         }
         // 根据用户ID获取供应商信息
-        SupplierInfo supplierInfo = supplierInfoService.getSupplierByUserId(currentUser.getId());
-        return supplierInfo != null ? supplierInfo.getId() : null;
+        if(currentUser.getRole().equals("supplier")){
+            return currentUser.getId();
+        }
+        return null;
     }
 
     /**
